@@ -1,0 +1,507 @@
+---
+params: 
+  title: ""
+  publication_date: ""
+  doi: ""
+output: 
+  html_document:
+    anchor_sections: false
+    theme: null
+    highlight: null
+    mathjax: null
+    css: ["style.css", "https://fonts.googleapis.com/css?family=Source+Sans+Pro:400,700&display=swap"]
+    self_contained: true
+title: "`r params$title`"
+---
+
+```{r general-setup, include=FALSE}
+## This file contains the ENGLISH version of the data story
+
+# Set general chunk options
+knitr::opts_chunk$set(echo = FALSE, fig.showtext = TRUE, fig.retina = 3, 
+                      fig.align = "center", warning = FALSE, message = FALSE)
+
+# Install pacman package if needed
+if (!require("pacman")) {
+  install.packages("pacman")
+  library(pacman)
+}
+
+# Install snf.datastory package if not available, otherwise load it
+if (!require("snf.datastory")) {
+  if (!require("devtools")) {
+    install.packages("devtools")
+    library(devtools)
+  }
+  install_github("snsf-data/snf.datastory")
+  library(snf.datastory)
+}
+
+# Load packages
+p_load(lubridate,
+       scales, 
+       conflicted, 
+       jsonlite,
+       here, 
+       ggiraph,
+       cowplot,
+       ggrepel)
+
+# Conflict preferences
+conflict_prefer("filter", "dplyr")
+conflict_prefer("sql", "dbplyr")
+conflict_prefer("get_datastory_theme", "snf.datastory")
+conflict_prefer("get_datastory_scheme", "snf.datastory")
+
+# Increase showtext package font resolution
+showtext_opts(dpi = 320)
+
+# Set the locale for date formatting (Windows)
+Sys.setlocale("LC_TIME", "English")
+
+# Create function to print number with local language-specific format 
+print_num <- function(x) snf.datastory::print_num(x, lang = "en")
+
+# Knitr hook for local formatting of printed numbers
+knitr::knit_hooks$set(
+  inline <- function(x) {
+    if (!is.numeric(x)) {
+      x
+    } else {
+      print_num(x)
+    }
+  }
+)
+```
+
+```{r print-header-infos, results='asis'}
+# Add publication date to header
+cat(format(as_datetime(params$publication_date), "%d.%m.%Y"))
+
+# Register the Google font (same as Data Portal, is not loaded twice)
+cat(paste0("<link href='https://fonts.googleapis.com/css?family=", 
+           "Source+Sans+Pro:400,700&display=swap' rel='stylesheet'>"))
+```
+
+```{r story-specific-setup, include=FALSE}
+# Set story-specific variables etc. here
+
+# E.g. loading data...
+pf_summary <- read_csv2(here("data", "success_funding_rate.csv")) %>% 
+  filter(research_area  == "Overall") %>% 
+  select(-research_area)
+
+pf_summary_main_researcharea <- read_csv2(here("data", 
+                                               "success_funding_rate.csv")) %>% 
+  filter(research_area  != "Overall")
+
+```
+
+
+<!-- Short lead (2-3 sentences) in bold -->
+
+__The Swiss research landscape suffers from a chronic underrepresentation of women. This can also be seen in the share of women applying for funding at the SNSF. But how has this share evolved over time? And have women been less successful in raising funds?__
+
+The SNSF does a yearly gender monitoring to stay on top of recent developments in the share of female researchers applying for and receiving funding. The results are regularly presented to the <a href="https://www.snf.ch/en/0PP6MZgvShTA9HDg/topic/research-policies" target="_blank">Gender Equality Commission of the SNSF</a>, as well as to the National Research Council, in order for them to give evidence-based advise and take decisions.  To take the appropriate measures to improve gender equality in the Swiss research landscape, the SNSF and its Gender Equality office must understand the situation of female applicants. We start our series on the gender monitoring by looking at simple descriptive statistics: success rates and funding rates of female and male applicants.
+
+<div class="info-box">
+
+### Data on project funding
+
+In the following we will restrict ourselves to the SNSF instrument <a target="_blank" href="https://www.snf.ch/en/ufFZqdPv7wgJ1BkH/page/theSNSF/evaluation-procedures/project-funding">Project funding</a> and use aggregated data since the October 2016 call. That was the first call after the latest reform of the Project funding regulations in 2016. The same regulations have been in effect since then.
+
+Note that Project funding - the largest funding instrument at the SNSF - has two calls per year, one in April and one in October. For each proposal submitted to Project funding, there is a corresponding applicant and there may be several co-applicants.^[The corresponding applicant just represents the team of applicants in the interaction with the SNSF, but otherwise the corresponding applicant and the co-applicants have equal roles and responsibilities in the project.]
+Approximately one quarter of the proposals come from teams of multiple applicants. The results of the following analysis are similar whether we consider the gender of the majority of the applicants or simply the gender of the corresponding applicant, and so for the clearest presentation of the descriptive statistics, we will focus on the gender of the corresponding applicant of each proposal.
+
+To quantify how successful female and male researchers have been at getting funding, we will use two summary statistics: the success rate and the funding rate. The success rate is the ratio between the number of accepted proposals and the total number of evaluated submissions, usually expressed as a percentage. The funding rate is the ratio between the total budget granted and the total budget requested. This quantity is also presented as a percentage.
+</div>
+
+### Share of female applicants
+
+Is there a large discrepancy between the share of female and male researchers submitting their research projects for funding? Can we observe any trends over time?
+
+Overall, the share of female researchers among all corresponding applicants to Project funding has been increasing over the last ten calls, but only slightly. This slight increase is mainly due to a growing share of female applicants in the Life Sciences (LS), where we see an increase of about 8% since 2016.
+The female share in the Social Sciences and Humanities (SSH) has always been the highest, constantly between 30% and 40%.
+The lowest share is in Mathematics, Natural and Engineering Sciences (MINT), where the percentage of female applicants is never more than 21%.
+
+<div class="plot-box">
+<div class="plot-title">Overall share of female corresponding applicants</div>
+```{r overall-gender-share, out.with = "100%", fig.height=3.5}
+
+p <- pf_summary %>% 
+  mutate(gender = case_when(gender == "m" ~ "Male",
+                            gender == "f" ~ "Female"),
+         label = ifelse(end_date_call == "2020-10-01", gender, NA)) %>% 
+  group_by(end_date_call) %>% 
+  mutate(N = sum(n)) %>% 
+  ungroup() %>% 
+  filter(gender == "Female") %>%
+  arrange(end_date_call) %>% 
+  ggplot(aes(x = end_date_call, y = prop_applicants, 
+             color = gender, 
+             group = gender)) +
+  geom_line(color = get_datastory_scheme("qualitative")[1], size = .4) + 
+  geom_point_interactive(
+    aes(tooltip = paste0("Share of ", tolower(gender),
+                         " researchers: <b>", round(prop_applicants, 3) * 100,
+                         "%</b> of <b>", N, "</b> total submissions")),
+    size = 10, color = "white", alpha = .01) +
+  scale_y_continuous(labels = scales::label_percent(accuracy = 1),
+                     limits = c(0, 0.55),
+                     breaks = seq(0, 1, by = 0.1)) +
+  # Add "unique" to avoid plotting of multiple labels at the same location
+  scale_x_continuous(breaks = unique(pf_summary$end_date_call),
+                     labels = unique(pf_summary$call)) +
+  # expand_limits(x = as.Date(c("2016-10-01", "2021-02-01"))) +
+  scale_color_manual_interactive(values = get_datastory_scheme()) +
+  get_datastory_theme(title_axis = "y", tick_axis = "x",
+                      gridline_axis = "y") + 
+  labs(x = NULL, y = NULL) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),
+        strip.text = element_text(size = 7), 
+        plot.margin = margin(0, 0, 0, 0, "mm"),
+        panel.grid.major.x = element_blank()) 
+
+
+girafe(ggobj = p,
+       height_svg = 3.5,
+       options = list(
+         opts_toolbar(saveaspng = FALSE),
+         opts_tooltip(
+           css = get_ggiraph_tooltip_css(),
+           opacity = 0.8,
+           delay_mouseover = 0,
+           delay_mouseout = 0
+         )))
+         
+
+# Put together plot caption 
+caption <- paste0("The evolution of the share of proposals to Project funding with female corresponding applicants since the October 2016 call.")
+```
+<div class="caption">
+`r caption` Data on github: <a href="https://github.com/snsf-data/datastory_women_underrepresented_or_underfunded/data" target="_blank">Success- and fundingrates in Project Funding</a>.
+</div>
+</div>
+
+
+<div class="plot-box">
+<div class="plot-title">Share of female corresponding applicants by research area</div>
+```{r gender-shares-in-applications, out.width="100%", fig.height=3.5}
+pf_applications_main_researcharea <- pf_summary_main_researcharea %>% 
+  ungroup() %>% 
+  select(research_area, end_date_call, call, gender, prop_applicants) %>% 
+  pivot_wider(names_from = research_area,
+              values_from = prop_applicants) 
+
+gg <- pf_summary_main_researcharea %>% 
+  ungroup() %>% 
+  mutate(gender = case_when(gender == "m" ~ "Male",
+                            gender == "f" ~ "Female"),
+         name = case_when(
+           research_area  == "Biology and Medicine" ~ "LS",
+           research_area  == 
+             "Mathematics, Natural- and Engineering Sciences" ~ "MINT",
+           TRUE ~ "SSH"),
+         # reorder the factor levels
+         name = suppressWarnings(fct_relevel(name, c("LS", "MINT", "SSH"))),
+         label = ifelse(end_date_call == "2020-10-01", paste0(name), NA)) %>%
+  filter(gender == "Female") %>%
+  group_by(end_date_call, name) %>% 
+  mutate(N = sum(n)) %>% 
+  ungroup() %>% 
+  arrange(end_date_call) %>% 
+  ggplot(aes(x = end_date_call, y = prop_applicants, 
+             color = fct_rev(name), group = name)) +
+  geom_line(size = .6,
+            # Draw point instead of square symbol
+            key_glyph = draw_key_point) + 
+  geom_point_interactive(aes(tooltip =
+                               paste0("<b>", name, "</b>: Share of ", 
+                                      tolower(gender),
+                                      " researchers: <b>" , 
+                                      round(prop_applicants, 3) * 100,
+                                      "%</b> of <b>", N, "</b> submissions")),
+                         size = 10, color = "white", alpha = .01) +
+  scale_y_continuous(labels = scales::label_percent(accuracy = 1),
+                     limits = c(0, 0.55),
+                     breaks = seq(0, 1, by = 0.1)) +
+  # Add "unique" to avoid plotting of multiple labels at the same location
+  scale_x_continuous(
+    breaks = unique(pf_applications_main_researcharea$end_date_call),
+    labels = unique(pf_applications_main_researcharea$call)) +
+  scale_color_manual(values = get_datastory_scheme("qualitative")) +
+  guides(color = guide_legend(override.aes = list(size = 3))) + 
+  get_datastory_theme(title_axis = "y", tick_axis = "x",
+                      gridline_axis = "y") + 
+  labs(x = NULL, y = NULL) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),
+        strip.text = element_text(size = 7), 
+        plot.margin = margin(0, 0, 0, 0, "mm"),
+        panel.grid.major.x = element_blank()) 
+  
+girafe(ggobj = gg,
+       height_svg = 3.5,
+       options = list(
+         opts_toolbar(saveaspng = FALSE),
+         opts_tooltip(
+           css = get_ggiraph_tooltip_css(),
+           opacity = 0.8,
+           delay_mouseover = 0,
+           delay_mouseout = 0
+         )))
+
+# Put together plot caption 
+caption <- paste0("The share of proposals with female corresponding applicants ",
+                  "since the October 2016 Project funding call, depending ",
+                  "on the main research area of the proposal.")
+```
+<div class="caption">
+`r caption` Data on github: <a href="https://github.com/snsf-data/datastory_women_underrepresented_or_underfunded/data" target="_blank">Success- and fundingrates in Project Funding</a>.
+</div>
+</div>
+
+
+### How successful were female and male applicants?
+
+Overall, female applicants had lower success rates than male applicants in Project funding until the April 2018 call. Since then, the overall success rates of female and male applicants has been very similar, although we do observe a decrease in the success rate of female applicants in the October 2020 call.
+
+However, looking at the success rates by research area and gender, we see some relevant differences: Interestingly, even though a relatively high share of female researchers apply to Project funding in the SSH, the success rate of men has been higher compared to women for all but two of the calls shown. In contrast, in MINT, the success rates of female and male applicants were often similar and in some calls even higher for female applicants. In LS, female applicants had slightly lower success rates than male applicants in most of the calls since October 2016, while a large drop in success rates for women compared to men can be observed in the October 2019 and October 2020 calls.
+
+In general, the success rates for both genders have been declining: they had been close to, or even above 50% in 2016, 2017 and 2018, but have been decreasing towards 30% to 40% since then. This is due to an increased demand accompanied by a decrease in funding available to the Projects Funding scheme.
+
+<div class="plot-box">
+<div class="plot-title">Success rates by gender: Overall and by research area</div>
+```{r gender-sucess-rates, out.width="100%", fig.height=6.5}
+
+# success rates by gender and research area
+pf_sr_main_researcharea <- pf_summary_main_researcharea %>% 
+  ungroup() %>% 
+  mutate(gender = case_when(gender == "m" ~ "Male",
+                       gender == "f" ~ "Female"),
+         gender = suppressWarnings(fct_relevel(gender,
+                                               c("Male", "Female"))),
+         main_researcharea = 
+           case_when(research_area == "Biology and Medicine" ~ "LS",
+                     research_area == 
+                       "Mathematics, Natural- and Engineering Sciences" ~ 
+                       "MINT",
+                     TRUE ~ "SSH")
+         ) %>% 
+  select(main_researcharea, end_date_call, call, gender, SR)
+
+# overall success rates by gender
+pf_sr_overall <- pf_summary %>% 
+  ungroup() %>% 
+  mutate(gender = case_when(gender == "m" ~ "Male",
+                            gender == "f" ~ "Female"),
+         gender = suppressWarnings(fct_relevel(gender,
+                                               c("Male", "Female")))) %>% 
+  select(end_date_call, call, gender, SR)
+
+# function to plot the success rates by gender for the specified research area
+# if main_research_area == "all", the overall success rates are plotted
+plot_sr_by_main_researcharea <- function(main_research_area) {
+  if(main_research_area %in% c("SSH", "MINT", "LS")) {
+    data <- pf_sr_main_researcharea %>%
+      filter(main_researcharea == main_research_area)
+    
+    title <- main_research_area
+    legendpos <- "none"
+  } else if(main_research_area == "all") {
+    data <- pf_sr_overall
+    
+    title <- "Overall"
+    legendpos <- c(.7, .75)
+  }
+  
+  data %>%
+  arrange(end_date_call) %>% 
+  ggplot(aes(x = end_date_call, y = SR, color = gender, group = gender)) +
+  geom_line(key_glyph = draw_key_point, size = .6) + 
+  geom_point_interactive(aes(tooltip =
+                               paste0("Success rate of ", gender ,
+                                      " applicants: ", 
+                                      round(SR, 3) * 100, "%")),
+                         size = 4, color = "white", alpha = .01) +
+  scale_y_continuous(labels = scales::label_percent(accuracy = 1),
+                     limits = c(.2, .65),
+                     breaks = seq(0, 1, by = 0.1)) +
+  # expand_limits(x = as.Date(c("2016-10-01", "2021-02-01"))) +
+  scale_size_manual_interactive(values = c(.5, 2)) + 
+  scale_alpha_manual_interactive(values = c(1, .5)) +
+  # Add "unique" to avoid plotting of multiple labels at the same location
+  scale_x_continuous(breaks = unique(pf_sr_main_researcharea$end_date_call),
+                     labels = unique(pf_sr_main_researcharea$call)) +
+  labs(title = title, x = NULL, y = NULL) +
+  scale_color_manual(values = get_datastory_scheme("qualitative")) +
+  guides(color = guide_legend(override.aes = list(size = 2))) + 
+  get_datastory_theme(title_axis = "y", tick_axis = "x",
+                      gridline_axis = "y",
+                      legend_position = legendpos) + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),
+        strip.text = element_text(size = 7), 
+        plot.margin = margin(0, 0, 0, 0, "mm"),
+        panel.grid.major.x = element_blank(),
+        legend.background = element_rect(fill='transparent')) 
+}
+
+gg_overall <- plot_sr_by_main_researcharea("all")
+gg_ssh <- plot_sr_by_main_researcharea("SSH")
+gg_mint <- plot_sr_by_main_researcharea("MINT")
+gg_ls <- plot_sr_by_main_researcharea("LS")
+
+girafe(ggobj = plot_grid(gg_overall, gg_ssh, 
+                         gg_mint, gg_ls,
+                         nrow = 2, ncol = 2),
+       width_svg = 9.5,
+       height_svg = 6.5,
+       options = list(
+         opts_toolbar(saveaspng = FALSE),
+         opts_tooltip(
+           css = get_ggiraph_tooltip_css(),
+           opacity = 0.8,
+           delay_mouseover = 0,
+           delay_mouseout = 0
+         )))
+
+# Put together plot caption 
+caption <- paste0("The success rates depending on the gender of the corresponding ",
+                  "applicant and the main research area of the proposal, since the ",
+                  "October 2016 Project funding call.")
+```
+<div class="caption">
+`r caption` Data on github: <a href="https://github.com/snsf-data/datastory_women_underrepresented_or_underfunded/data" target="_blank">Success- and Fundingrates in Project Funding</a>.
+</div>
+</div>
+
+### Less money for female grantees? 
+
+If we look at the funding rates, we see relatively similar gender patterns as for the success rates. However, there are some interesting discrepancies: For example, the overall success rates of female and male applicants are very similar in the October 2018 and April 2019 calls, but the funding rates for female applicants are clearly lower than the funding rates for male applicants in those two calls. This means that female and male applicants were about equally successful in terms of the percentage of funded projects, but male applicants were granted a larger relative share of the total requested funding. In the SSH, the gender differences in the funding rates appear smaller than the gender differences in the corresponding success rates. Also note that in MINT, while the success rate of female applicants is higher in the October 2019 call, the corresponding funding rates by gender for that call are quite similar. Combining these facts also suggests that on average, the budgets of successful female applicants are cut more than the budgets of their male peers.
+
+<div class="plot-box">
+<div class="plot-title">Funding rates by gender: Overall and by research area</div>
+
+```{r gender-funding-rates, out.width="100%", fig.height=6.5}
+
+# funding rates by gender and research area
+pf_fr_main_researcharea <- pf_summary_main_researcharea %>% 
+  ungroup() %>% 
+  mutate(gender = case_when(gender == "m" ~ "Male",
+                            gender == "f" ~ "Female"),
+         gender = suppressWarnings(fct_relevel(gender, c("Male", "Female"))),
+         main_researcharea = 
+           case_when(research_area == "Biology and Medicine" ~ "LS",
+                     research_area == 
+                       "Mathematics, Natural- and Engineering Sciences" ~ 
+                       "MINT",
+                     TRUE ~ "SSH")) %>% 
+  select(main_researcharea, end_date_call, call, gender, FR)
+
+# overall funding rates by gender
+pf_fr_overall <- pf_summary %>% 
+  ungroup() %>% 
+  mutate(gender = case_when(gender == "m" ~ "Male", 
+                            gender == "f" ~ "Female"),
+         gender = suppressWarnings(fct_relevel(gender,
+                                               c("Male", "Female")))) %>% 
+  select(end_date_call, call, gender, FR)
+
+# function to plot the funding rates by gender for the specified research area
+# if main_research_area == "all", the overall success rates are plotted
+plot_fr_by_main_researcharea <- function(main_research_area) {
+  if(main_research_area %in% c("SSH", "MINT", "LS")) {
+    data <- pf_fr_main_researcharea %>%
+      filter(main_researcharea == main_research_area)
+    
+    title <- main_research_area
+    legendpos <- "none"
+  } else if(main_research_area == "all") {
+    data <- pf_fr_overall
+    
+    title <- "Overall"
+    legendpos <- c(.7, .75)
+  }
+  
+  data %>%
+  arrange(end_date_call) %>% 
+  ggplot(aes(x = end_date_call, y = FR, 
+             color = gender, 
+             group = gender)) +
+  geom_line(key_glyph = draw_key_point, size = .6) + 
+  geom_point_interactive(aes(tooltip =
+                               paste0("Funding rate of ", gender ,
+                                      " applicants: ", round(FR, 3) * 100, "%")),
+                         size = 4, color = "white", alpha = .01) +
+  scale_y_continuous(labels = scales::label_percent(accuracy = 1),
+                     limits = c(.2, .65),
+                     breaks = seq(0, 1, by = 0.1)) +
+  # expand_limits(x = as.Date(c("2016-10-01", "2021-02-01"))) +
+  scale_size_manual_interactive(values = c(.5, 2)) + 
+  scale_alpha_manual_interactive(values = c(1, .5)) +
+  # Add "unique" to avoid plotting of multiple labels at the same location
+  scale_x_continuous(breaks = unique(pf_sr_main_researcharea$end_date_call),
+                     labels = unique(pf_sr_main_researcharea$call)) +
+  labs(title = title, x = NULL, y = NULL) +
+  scale_color_manual(values = get_datastory_scheme("qualitative")) +
+  guides(color = guide_legend(override.aes = list(size = 2))) + 
+  get_datastory_theme(title_axis = "y", tick_axis = "x",
+                      gridline_axis = "y",
+                      legend_position = legendpos) + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),
+        strip.text = element_text(size = 7), 
+        plot.margin = margin(0, 0, 0, 0, "mm"),
+        panel.grid.major.x = element_blank(),
+        legend.background = element_rect(fill='transparent')) 
+}
+
+gg_overall <- plot_fr_by_main_researcharea("all")
+gg_ssh <- plot_fr_by_main_researcharea("SSH")
+gg_mint <- plot_fr_by_main_researcharea("MINT")
+gg_ls <- plot_fr_by_main_researcharea("LS")
+
+girafe(ggobj = plot_grid(gg_overall, gg_ssh, 
+                         gg_mint, gg_ls,
+                         nrow = 2, ncol = 2),
+       width_svg = 9.5,
+       height_svg = 6.5,
+       options = list(
+         opts_toolbar(saveaspng = FALSE),
+         opts_tooltip(
+           css = get_ggiraph_tooltip_css(),
+           opacity = 0.8,
+           delay_mouseover = 0,
+           delay_mouseout = 0
+         )))
+
+# Put together plot caption 
+caption <- paste0("The funding rates depending on the gender of the corresponding ",
+                  "applicant and the main research area of the proposal, since the ",
+                  "October 2016 Project funding call.")
+```
+<div class="caption">
+`r caption` Data on github: <a href="https://github.com/snsf-data/datastory_women_underrepresented_or_underfunded/data" target="_blank">Success- and Fundingrates in Project Funding</a>.
+</div>
+</div>
+
+
+### Why do women have lower success rates in some research areas?
+
+Lower success rates for female applicants compared to male applicants can - at least partly - be explained by so-called confounding variables. Those are variables with a known association with the variable of interest, here the gender of the applicant, and with the outcome, here funding success. Known confounders are, among others, the experience of applying for funding and the seniority of the researchers: There is a higher share of female first-time applicants (25\% of all female applicants versus 17\% of all male applicants, in the considered data) and a lower share of female full professors (32\% of all female applicants versus 39\% of all male applicants, in the considered data).
+
+Other applicant characteristics, such as the specific discipline and the affiliation of the researchers, also play a role in some research areas. For example, in the SSH, a higher share of female applicants is employed at universities of applied sciences and universities of teacher education. Applicants from these institutions tend to have lower success rates than applicants affiliated with cantonal universities or ETH institutions.
+
+
+<div class="info-box">
+
+### What now?
+
+The descriptive statistics presented above are regularly discussed internally and used to motivate further analyses. As mentioned before, some discrepancies between the success of men and women at the SNSF can be explained through other confounding variables. These investigations help the SNSF office and its Gender Equality Commission to better target their equality interventions. 
+With specific funding instruments, support of mentoring and networking activities, and measures for a better reconciliation of family and work,
+the SNSF tries to counter the under-representation of women in the Swiss research landscape. 
+The SNSF attempts to investigate and minimize sources of bias in its evaluation procedures.
+To this end, it decided to foster a more balanced gender composition of its evaluation panels and the National Research Council and introduced a gender quota at the beginning of this year. 
+Further questions to be addressed are for example: How large is the influence of the before-mentioned confounding variables? Are proposals from female researchers graded less favorably? Do certain evaluation criteria penalize women? And do the introduced gender equality measures live up to their promise? Future data stories will provide in-depth analyses motivated by these questions.
+</div>
+
+
+Data, text and code of this data story are <a href="https://github.com/snsf-data/datastory_women_underrepresented_or_underfunded" target="_blank">available on Github</a> and <a href="https://doi.org/10.46446/datastory.women-underrepresented-or-underfunded" target="_blank">archived on Zenodo</a>.<br>DOI: 10.46446/datastory.women-underrepresented-or-underfunded

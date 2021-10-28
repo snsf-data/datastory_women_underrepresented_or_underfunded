@@ -1,0 +1,507 @@
+---
+params: 
+  title: ""
+  publication_date: ""
+  doi: ""
+output: 
+  html_document:
+    anchor_sections: false
+    theme: null
+    highlight: null
+    mathjax: null
+    css: ["style.css", "https://fonts.googleapis.com/css?family=Source+Sans+Pro:400,700&display=swap"]
+    self_contained: true
+title: "`r params$title`"
+---
+
+```{r general-setup, include=FALSE}
+## This file contains the FRENCH version of the data story 
+
+# Set general chunk options
+knitr::opts_chunk$set(echo = FALSE, fig.showtext = TRUE, fig.retina = 3, 
+                      fig.align = "center", warning = FALSE, message = FALSE)
+
+# Install pacman package if needed
+if (!require("pacman")) {
+  install.packages("pacman")
+  library(pacman)
+}
+
+# Install snf.datastory package if not available, otherwise load it
+if (!require("snf.datastory")) {
+  if (!require("devtools")) {
+    install.packages("devtools")
+    library(devtools)
+  }
+  install_github("snsf-data/snf.datastory")
+  library(snf.datastory)
+}
+
+# Load packages
+p_load(lubridate,
+       scales, 
+       conflicted, 
+       jsonlite,
+       here, 
+       ggiraph,
+       cowplot,
+       ggrepel)
+
+# Conflict preferences
+conflict_prefer("filter", "dplyr")
+conflict_prefer("get_datastory_theme", "snf.datastory")
+conflict_prefer("get_datastory_scheme", "snf.datastory")
+
+# Increase showtext package font resolution
+showtext_opts(dpi = 320)
+
+# Set the locale for date formatting (Windows)
+Sys.setlocale("LC_TIME", "French")
+
+# Create function to print number with local language-specific format 
+print_num <- function(x) snf.datastory::print_num(x, lang = "fr")
+
+# Knitr hook for local formatting of printed numbers
+knitr::knit_hooks$set(
+  inline <- function(x) {
+    if (!is.numeric(x)) {
+      x
+    } else {
+      print_num(x)
+    }
+  }
+)
+```
+
+```{r print-header-infos, results='asis'}
+# Add publication date to header
+cat(format(as_datetime(params$publication_date), "%d.%m.%Y"))
+
+# Register the Google font (same as Data Portal, is not loaded twice)
+cat(paste0("<link href='https://fonts.googleapis.com/css?family=", 
+           "Source+Sans+Pro:400,700&display=swap' rel='stylesheet'>"))
+```
+
+```{r story-specific-setup, include=FALSE}
+# Set story-specific variables etc. here
+
+# E.g. loading data...
+pf_summary <- read_csv2(here("data", "success_funding_rate.csv")) %>% 
+  filter(research_area  == "Overall") %>% 
+  select(-research_area)
+
+pf_summary_main_researcharea <- read_csv2(here("data", 
+                                               "success_funding_rate.csv")) %>% 
+  filter(research_area  != "Overall")
+
+```
+
+
+<!-- Short lead (2-3 sentences) in bold -->
+
+__Le paysage de la recherche suisse souffre d’une sous-représentation chronique des femmes. Cela se voit également dans la part des femmes qui demandent un financement au FNS. Mais comment cette part a-t-elle évolué au fil du temps? Et les femmes ont-elles moins bien réussi à lever des fonds?__
+
+Le FNS effectue chaque année un monitoring de l’égalité entre les sexes afin de suivre l’évolution de la proportion de chercheuses qui demandent et reçoivent des subsides. Les résultats sont régulièrement présentés à la [commission du FNS pour l’égalité](https://www.snf.ch/fr/0PP6MZgvShTA9HDg/dossier/points-de-vue-politique-de-recherche), ainsi qu’au Conseil national de la recherche, afin qu’ils puissent donner des conseils fondés sur des preuves et prendre des décisions. Afin de prendre les mesures appropriées pour améliorer l’égalité des sexes dans le paysage de la recherche suisse, le FNS et son bureau de l’égalité entre femmes et hommes doivent comprendre la situation des requérantes. Nous commençons notre série sur le monitoring de l'égalité entre les sexes en examinant de simples statistiques descriptives : les taux de réussite et de financement des femmes et des hommes.
+
+<div class="info-box">
+
+### Données sur le financement des projets
+
+Dans ce qui suit, nous nous limiterons à l’instrument du FNS [Encouragement de projets](https://www.snf.ch/fr/ufFZqdPv7wgJ1BkH/page/leFNS/procedure-de-selection/encouragement-de-projets) et utiliserons des données agrégées depuis la mise au concours d’octobre 2016. C’était la première mise au concours après la dernière réforme du règlement relatif à l’encouragement de projets en 2016. Le même règlement est en vigueur depuis lors.
+
+Il est à noter que l’encouragement de projets – le plus important instrument de financement du FNS – fait l’objet de deux mises au concours par an, l’une en avril et l’autre en octobre. Pour chaque requête soumise dans le cadre de l’encouragement de projets, il y a un·e requérant·e chargé·e de la correspondance et il peut y avoir plusieurs co-requérant·es.^[La requérante ou le requérant chargé de la correspondance représente simplement l’équipe de requérant·es dans l’interaction avec le FNS, mais autrement il ou elle a les mêmes rôles et responsabilités dans le projet que les co-requérant·es.]
+Environ un quart des requêtes proviennent d’équipes composées de plusieurs requérant·es. Les résultats de l’analyse suivante sont similaires, que l’on considère le sexe de la majorité des requérant·es ou simplement le sexe de la ou du requérant·e chargé·e de la correspondance. Pour une présentation plus claire des statistiques descriptives, nous nous concentrerons donc sur le sexe du ou de la requérant·e chargé·e de la correspondance de chaque requête.
+
+Pour quantifier la propension des chercheuses et chercheurs à obtenir un financement, nous utiliserons deux statistiques sommaires : le taux de réussite et le taux de financement. Le taux de réussite est le rapport entre le nombre de requêtes acceptées et le nombre total de requêtes évaluées, généralement exprimé en pourcentage. Le taux de financement est le rapport entre le budget total accordé et le budget total demandé. Cette quantité est également présentée sous forme de pourcentage.
+</div>
+
+### Part des requérantes
+
+Existe-t-il un écart important entre la part des chercheuses et celle des chercheurs qui soumettent leurs projets de recherche pour un financement? Peut-on observer des tendances s’inscrivant dans la durée?
+
+Globalement, la part des chercheuses parmi l’ensemble des requérant·es chargé·es de la correspondance dans l’encouragement de projets a augmenté au cours des dix dernières mises au concours, mais seulement légèrement. Cette légère augmentation est principalement due à une part croissante de requérantes dans les sciences de la vie (SV), où l’on constate une augmentation d’environ 8% depuis 2016. La part des femmes dans les sciences humaines et sociales (SHS) a toujours été la plus élevée, se situant constamment entre 30 et 40%. La part la plus faible est celle des mathématiques, des sciences naturelles et de l’ingénierie (MINT), où le pourcentage de requérantes n’est jamais supérieur à 21%.
+
+
+<div class="plot-box">
+<div class="plot-title">Part globale des requérantes chargées de la correspondance</div>
+```{r overall-gender-share, out.with = "100%", fig.height=3.5}
+
+p <- pf_summary %>% 
+  mutate(gender = case_when(gender == "m" ~ "Hommes",
+                            gender == "f" ~ "Femmes"),
+         label = ifelse(end_date_call == "2020-10-01", gender, NA)) %>% 
+  group_by(end_date_call) %>% 
+  mutate(N = sum(n)) %>% 
+  ungroup() %>% 
+  filter(gender == "Femmes") %>%
+  arrange(end_date_call) %>% 
+  ggplot(aes(x = end_date_call, y = prop_applicants, 
+             color = gender, 
+             group = gender)) +
+  geom_line(color = get_datastory_scheme("qualitative")[1], size = .4) + 
+  geom_point_interactive(
+    aes(tooltip = paste0("Share of ", tolower(gender),
+                         " researchers: <b>", round(prop_applicants, 3) * 100,
+                         "%</b> of <b>", N, "</b> total submissions")),
+    size = 10, color = "white", alpha = .01) +
+  scale_y_continuous(labels = scales::label_percent(accuracy = 1),
+                     limits = c(0, 0.55),
+                     breaks = seq(0, 1, by = 0.1)) +
+  # Add "unique" to avoid plotting of multiple labels at the same location
+  scale_x_continuous(breaks = unique(pf_summary$end_date_call),
+                     labels = unique(pf_summary$call)) +
+  # expand_limits(x = as.Date(c("2016-10-01", "2021-02-01"))) +
+  scale_color_manual_interactive(values = get_datastory_scheme()) +
+  get_datastory_theme(title_axis = "y", tick_axis = "x",
+                      gridline_axis = "y") + 
+  labs(x = NULL, y = NULL) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),
+        strip.text = element_text(size = 7), 
+        plot.margin = margin(0, 0, 0, 0, "mm"),
+        panel.grid.major.x = element_blank()) 
+
+
+girafe(ggobj = p,
+       height_svg = 3.5,
+       options = list(
+         opts_toolbar(saveaspng = FALSE),
+         opts_tooltip(
+           css = get_ggiraph_tooltip_css(),
+           opacity = 0.8,
+           delay_mouseover = 0,
+           delay_mouseout = 0
+         )))
+         
+
+# Put together plot caption 
+caption <- "Evolution de la part des demandes de financement dans
+            l’encouragement de projets avec des requérantes chargées de la 
+            correspondance depuis la mise au concours d'octobre 2016."
+```
+<div class="caption">
+`r caption` Données sur github: <a href="https://github.com/snsf-data/datastory_women_underrepresented_or_underfunded/data" target="_blank">Taux de réussite et de financement dans l'encouragement des projets</a>.
+</div>
+</div>
+
+
+<div class="plot-box">
+<div class="plot-title">Part des requérantes chargées de la correspondance par domaine de recherche</div>
+
+```{r gender-shares-in-applications, out.width="100%", fig.height=3.5}
+pf_applications_main_researcharea <- pf_summary_main_researcharea %>% 
+  ungroup() %>% 
+  select(research_area, end_date_call, call, gender, prop_applicants) %>% 
+  pivot_wider(names_from = research_area,
+              values_from = prop_applicants) 
+
+gg <- pf_summary_main_researcharea %>% 
+  ungroup() %>% 
+  mutate(gender = case_when(gender == "m" ~ "Hommes",
+                            gender == "f" ~ "Femmes"),
+         name = case_when(
+           research_area  == "Biology and Medicine" ~ "SV",
+           research_area  == 
+             "Mathematics, Natural- and Engineering Sciences" ~ "MINT",
+           TRUE ~ "SHS"),
+         # reorder the factor levels
+         name = suppressWarnings(fct_relevel(name, c("SV", "MINT", "SHS"))),
+         label = ifelse(end_date_call == "2020-10-01", paste0(name), NA)) %>%
+  filter(gender == "Femmes") %>%
+  group_by(end_date_call, name) %>% 
+  mutate(N = sum(n)) %>% 
+  ungroup() %>% 
+  arrange(end_date_call) %>% 
+  ggplot(aes(x = end_date_call, y = prop_applicants, 
+             color = fct_rev(name), group = name)) +
+  geom_line(size = .6,
+            # Draw point instead of square symbol
+            key_glyph = draw_key_point) + 
+  geom_point_interactive(aes(tooltip =
+                               paste0("<b>", name, "</b>: Share of ", 
+                                      tolower(gender),
+                                      " researchers: <b>" , 
+                                      round(prop_applicants, 3) * 100,
+                                      "%</b> of <b>", N, "</b> submissions")),
+                         size = 10, color = "white", alpha = .01) +
+  scale_y_continuous(labels = scales::label_percent(accuracy = 1),
+                     limits = c(0, 0.55),
+                     breaks = seq(0, 1, by = 0.1)) +
+  # Add "unique" to avoid plotting of multiple labels at the same location
+  scale_x_continuous(
+    breaks = unique(pf_applications_main_researcharea$end_date_call),
+    labels = unique(pf_applications_main_researcharea$call)) +
+  scale_color_manual(values = get_datastory_scheme("qualitative")) +
+  guides(color = guide_legend(override.aes = list(size = 3))) + 
+  get_datastory_theme(title_axis = "y", tick_axis = "x",
+                      gridline_axis = "y") + 
+  labs(x = NULL, y = NULL) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),
+        strip.text = element_text(size = 7), 
+        plot.margin = margin(0, 0, 0, 0, "mm"),
+        panel.grid.major.x = element_blank()) 
+  
+girafe(ggobj = gg,
+       height_svg = 3.5,
+       options = list(
+         opts_toolbar(saveaspng = FALSE),
+         opts_tooltip(
+           css = get_ggiraph_tooltip_css(),
+           opacity = 0.8,
+           delay_mouseover = 0,
+           delay_mouseout = 0
+         )))
+# Put together plot caption 
+caption <- "Part des demandes de financement comprenant des requérantes chargées
+            de la correspondance depuis la mise au concours d'octobre 2016 dans
+            l’encouragement de projets, en fonction du domaine de recherche de 
+            la requête."
+```
+<div class="caption">
+`r caption` Données sur github: <a href="https://github.com/snsf-data/datastory_women_underrepresented_or_underfunded/data" target="_blank">Taux de réussite et de financement dans l'encouragement des projets</a>.
+</div>
+</div>
+
+
+### Quel est le taux de réussite des requérantes et des requérants?
+
+Dans le domaine de l’encouragement de projets, les femmes bénéficiaient globalement d’un taux de réussite inférieur à celui des hommes jusqu’à la mise au concours d’avril 2018. Depuis lors, les taux de réussite des requérantes et des requérants sont très proches, même si une baisse du taux de réussite des chercheuses a été observée lors de la mise au concours d’octobre 2020.
+
+Néanmoins, si l’on examine les taux de réussite des deux sexes dans différents domaines de recherche, des différences notables apparaissent. En effet, si un nombre proportionnellement élevé de chercheuses a déposé des requêtes en sciences humaines et sociales, le taux de réussite des hommes se révèle plus élevé que celui des femmes pour toutes les mises au concours à deux exceptions près. Dans les disciplines MINT, les taux de réussite des femmes et des hommes étaient à l’inverse souvent similaires, et ceux des chercheuses parfois même supérieurs à ceux des chercheurs en ce qui concerne certaines mises au concours. Dans le domaine des sciences de la vie, les taux de réussite obtenus depuis 2016 par les requérantes étaient la plupart du temps légèrement inférieurs à ceux des requérants, sachant que ces taux ont par ailleurs fortement chuté lors des mises au concours d’octobre 2019 et 2020.
+
+Les taux de réussite des deux sexes ont globalement décliné. Proches de 50% – voire supérieurs à ce chiffre – en 2016, 2017 et 2018, ils ont reculé pour s’établir depuis à 30-40%. Cette évolution résulte à la fois d’une hausse de la demande et d’une baisse des fonds alloués au programme d’encouragement de projets.
+
+<div class="plot-box">
+<div class="plot-title">Taux de réussite par sexe : globalement et par domaine de recherche</div>
+```{r gender-sucess-rates, out.width="100%", fig.height=6.5}
+
+# success rates by gender and research area
+pf_sr_main_researcharea <- pf_summary_main_researcharea %>% 
+  ungroup() %>% 
+  mutate(gender = case_when(gender == "m" ~ "Hommes",
+                       gender == "f" ~ "Femmes"),
+         gender = suppressWarnings(fct_relevel(gender,
+                                               c("Hommes", "Femmes"))),
+         main_researcharea = 
+           case_when(research_area == "Biology and Medicine" ~ "SV",
+                     research_area == 
+                       "Mathematics, Natural- and Engineering Sciences" ~ 
+                       "MINT",
+                     TRUE ~ "SHS")
+         ) %>% 
+  select(main_researcharea, end_date_call, call, gender, SR)
+
+# overall success rates by gender
+pf_sr_overall <- pf_summary %>% 
+  ungroup() %>% 
+  mutate(gender = case_when(gender == "m" ~ "Hommes",
+                            gender == "f" ~ "Femmes"),
+         gender = suppressWarnings(fct_relevel(gender,
+                                               c("Hommes", "Femmes")))) %>% 
+  select(end_date_call, call, gender, SR)
+
+# function to plot the success rates by gender for the specified research area
+# if main_research_area == "all", the overall success rates are plotted
+plot_sr_by_main_researcharea <- function(main_research_area) {
+  if(main_research_area %in% c("SHS", "MINT", "SV")) {
+    data <- pf_sr_main_researcharea %>%
+      filter(main_researcharea == main_research_area)
+    
+    title <- main_research_area
+    legendpos <- "none"
+  } else if(main_research_area == "all") {
+    data <- pf_sr_overall
+    
+    title <- "Globalement"
+    legendpos <- c(.7, .75)
+  }
+  
+  data %>%
+  arrange(end_date_call) %>% 
+  ggplot(aes(x = end_date_call, y = SR, color = gender, group = gender)) +
+  geom_line(key_glyph = draw_key_point, size = .6) + 
+  geom_point_interactive(aes(tooltip =
+                               paste0("Success rate of ", gender ,
+                                      " applicants: ", 
+                                      round(SR, 3) * 100, "%")),
+                         size = 4, color = "white", alpha = .01) +
+  scale_y_continuous(labels = scales::label_percent(accuracy = 1),
+                     limits = c(.2, .65),
+                     breaks = seq(0, 1, by = 0.1)) +
+  # expand_limits(x = as.Date(c("2016-10-01", "2021-02-01"))) +
+  scale_size_manual_interactive(values = c(.5, 2)) + 
+  scale_alpha_manual_interactive(values = c(1, .5)) +
+  # Add "unique" to avoid plotting of multiple labels at the same location
+  scale_x_continuous(breaks = unique(pf_sr_main_researcharea$end_date_call),
+                     labels = unique(pf_sr_main_researcharea$call)) +
+  labs(title = title, x = NULL, y = NULL) +
+  scale_color_manual(values = get_datastory_scheme("qualitative")) +
+  guides(color = guide_legend(override.aes = list(size = 2))) + 
+  get_datastory_theme(title_axis = "y", tick_axis = "x",
+                      gridline_axis = "y",
+                      legend_position = legendpos) + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),
+        strip.text = element_text(size = 7), 
+        plot.margin = margin(0, 0, 0, 0, "mm"),
+        panel.grid.major.x = element_blank(),
+        legend.background = element_rect(fill='transparent')) 
+}
+
+gg_overall <- plot_sr_by_main_researcharea("all")
+gg_ssh <- plot_sr_by_main_researcharea("SHS")
+gg_mint <- plot_sr_by_main_researcharea("MINT")
+gg_ls <- plot_sr_by_main_researcharea("SV")
+
+girafe(ggobj = plot_grid(gg_overall, gg_ssh, 
+                         gg_mint, gg_ls,
+                         nrow = 2, ncol = 2),
+       width_svg = 9.5,
+       height_svg = 6.5,
+       options = list(
+         opts_toolbar(saveaspng = FALSE),
+         opts_tooltip(
+           css = get_ggiraph_tooltip_css(),
+           opacity = 0.8,
+           delay_mouseover = 0,
+           delay_mouseout = 0
+         )))
+
+# Put together plot caption 
+caption <- "Taux de réussite en fonction du sexe de la ou du requérant·e chargé 
+            de la correspondance et du domaine de recherche du projet, depuis la
+            mise au concours d’octobre 2016 dans l’encouragement de projets."
+```
+<div class="caption">
+`r caption` Données sur github: <a href="https://github.com/snsf-data/datastory_women_underrepresented_or_underfunded/data" target="_blank">Taux de réussite et de financement dans l'encouragement des projets</a>.
+</div>
+</div>
+
+### Moins de fonds pour les chercheuses?
+
+L’examen des taux de financement fait ressortir des différences entre les femmes et les hommes similaires à celles observées quant aux taux de réussite. Certaines divergences méritent à ce titre d’être relevées. Lors des mises au concours d’octobre 2018 et d’avril 2019, les taux de réussite globaux des requérantes et des requérants étaient ainsi presque identiques, mais les taux de financement des chercheuses étaient clairement inférieurs à ceux de leurs homologues masculins. Ceci signifie que si les femmes et les hommes étaient sur un pied d’égalité relative quant au pourcentage de projets encouragés, la part octroyée à ces derniers sur le financement global requis s’avère plus importante en termes relatifs. En sciences humaines et sociales, les différences femmes-hommes apparaissent moins importantes en ce qui concerne les taux de financement que les taux de réussite correspondants. Il est également à noter que bien que le taux de réussite enregistré par les chercheuses dans le domaine de recherche MINT lors de la mise au concours d’octobre 2019 soit plus élevé, les taux de financement correspondants sont relativement similaires pour les deux sexes. La combinaison de ces faits suggère également qu’en moyenne les montants des subsides alloués aux requérantes sont inférieurs à ceux octroyés à leurs collègues.
+
+<div class="plot-box">
+<div class="plot-title">Taux de financement par sexe: globalement et par domaine de recherche</div>
+
+```{r gender-funding-rates, out.width="100%", fig.height=6.5}
+
+# funding rates by gender and research area
+pf_fr_main_researcharea <- pf_summary_main_researcharea %>% 
+  ungroup() %>% 
+  mutate(gender = case_when(gender == "m" ~ "Hommes",
+                            gender == "f" ~ "Femmes"),
+         gender = suppressWarnings(fct_relevel(gender, c("Hommes", "Femmes"))),
+         main_researcharea = 
+           case_when(research_area == "Biology and Medicine" ~ "SV",
+                     research_area == 
+                       "Mathematics, Natural- and Engineering Sciences" ~ 
+                       "MINT",
+                     TRUE ~ "SHS")) %>% 
+  select(main_researcharea, end_date_call, call, gender, FR)
+
+# overall funding rates by gender
+pf_fr_overall <- pf_summary %>% 
+  ungroup() %>% 
+  mutate(gender = case_when(gender == "m" ~ "Hommes", 
+                            gender == "f" ~ "Femmes"),
+         gender = suppressWarnings(fct_relevel(gender,
+                                               c("Hommes", "Femmes")))) %>% 
+  select(end_date_call, call, gender, FR)
+
+# function to plot the funding rates by gender for the specified research area
+# if main_research_area == "all", the overall success rates are plotted
+plot_fr_by_main_researcharea <- function(main_research_area) {
+  if(main_research_area %in% c("SHS", "MINT", "SV")) {
+    data <- pf_fr_main_researcharea %>%
+      filter(main_researcharea == main_research_area)
+    
+    title <- main_research_area
+    legendpos <- "none"
+  } else if(main_research_area == "all") {
+    data <- pf_fr_overall
+    
+    title <- "Globalement"
+    legendpos <- c(.7, .75)
+  }
+  
+  data %>%
+  arrange(end_date_call) %>% 
+  ggplot(aes(x = end_date_call, y = FR, 
+             color = gender, 
+             group = gender)) +
+  geom_line(key_glyph = draw_key_point, size = .6) + 
+  geom_point_interactive(aes(tooltip =
+                               paste0("Funding rate of ", gender ,
+                                      " applicants: ", round(FR, 3) * 100, "%")),
+                         size = 4, color = "white", alpha = .01) +
+  scale_y_continuous(labels = scales::label_percent(accuracy = 1),
+                     limits = c(.2, .65),
+                     breaks = seq(0, 1, by = 0.1)) +
+  # expand_limits(x = as.Date(c("2016-10-01", "2021-02-01"))) +
+  scale_size_manual_interactive(values = c(.5, 2)) + 
+  scale_alpha_manual_interactive(values = c(1, .5)) +
+  # Add "unique" to avoid plotting of multiple labels at the same location
+  scale_x_continuous(breaks = unique(pf_sr_main_researcharea$end_date_call),
+                     labels = unique(pf_sr_main_researcharea$call)) +
+  labs(title = title, x = NULL, y = NULL) +
+  scale_color_manual(values = get_datastory_scheme("qualitative")) +
+  guides(color = guide_legend(override.aes = list(size = 2))) + 
+  get_datastory_theme(title_axis = "y", tick_axis = "x",
+                      gridline_axis = "y",
+                      legend_position = legendpos) + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),
+        strip.text = element_text(size = 7), 
+        plot.margin = margin(0, 0, 0, 0, "mm"),
+        panel.grid.major.x = element_blank(),
+        legend.background = element_rect(fill='transparent')) 
+}
+
+gg_overall <- plot_fr_by_main_researcharea("all")
+gg_ssh <- plot_fr_by_main_researcharea("SHS")
+gg_mint <- plot_fr_by_main_researcharea("MINT")
+gg_ls <- plot_fr_by_main_researcharea("SV")
+
+girafe(ggobj = plot_grid(gg_overall, gg_ssh, 
+                         gg_mint, gg_ls,
+                         nrow = 2, ncol = 2),
+       width_svg = 9.5,
+       height_svg = 6.5,
+       options = list(
+         opts_toolbar(saveaspng = FALSE),
+         opts_tooltip(
+           css = get_ggiraph_tooltip_css(),
+           opacity = 0.8,
+           delay_mouseover = 0,
+           delay_mouseout = 0
+         )))
+
+# Put together plot caption 
+caption <- "Taux de financement en fonction du sexe de la ou du requérant·e 
+            chargé de la correspondance et du domaine de recherche du 
+            projet, depuis la mise au concours d’octobre 2016 dans 
+            l’encouragement de projets."
+```
+<div class="caption">
+`r caption` Données sur github: <a href="https://github.com/snsf-data/datastory_women_underrepresented_or_underfunded/data" target="_blank">Taux de réussite et de financement dans l'encouragement des projets</a>.
+</div>
+</div>
+
+### Pourquoi les taux de réussite des femmes sont-ils inférieurs dans certains domaines de recherche?
+
+Le fait que les requérantes enregistrent des taux de réussite inférieurs à ceux des requérants peut – au moins en partie – être expliqué par des variables dites confondantes dont on sait qu’elles sont associées à la variable d’intérêt, en l’occurrence le sexe de la personne requérante, et au résultat, soit la réussite d'une requête. Ainsi, l’expérience liée à la soumission d’une requête et l’ancienneté font entre autres partie des facteurs de confusion identifiés. Le nombre de chercheuses déposant une première requête est proportionnellement plus élevé que celui de leurs homologues masculins (25\% de toutes les requérantes contre 17\% de tous les requérants pour les données examinées), et ceci vaut également pour le nombre de femmes occupant une chaire de professeure (32\% de toutes les requérantes contre 39\% de tous les requérants pour les données examinées).
+
+D’autres caractéristiques des personnes requérantes, telles la discipline spécifique et l’affiliation des chercheuses et chercheurs, jouent également un rôle dans certains domaines de recherche. En sciences humaines et sociales, les femmes sont proportionnellement plus souvent employées dans des hautes écoles spécialisées et des hautes écoles pédagogiques. Les taux de réussite des personnes requérantes issues de ces institutions tendent à être inférieurs à ceux des chercheuses et chercheurs engagés au sein d’universités cantonales ou d’institutions du domaine des EPF.
+
+<div class="info-box">
+
+### Et maintenant?
+
+Les statistiques descriptives présentées plus haut font régulièrement l’objet de discussions internes et sont utilisées pour asseoir des analyses complémentaires. Comme précédemment mentionné, certains écarts entre les taux de réussite des femmes et des hommes quant à l’obtention d’un subside du FNS peuvent être expliqués par d’autres variables confondantes. Ces études aident le Secrétariat et la commission du FNS pour l’égalité à mieux cibler les mesures adoptées dans ce domaine.
+Le FNS s’attache à lutter contre la sous-représentation des femmes dans la recherche suisse à travers des instruments d’encouragement spécifiques, le soutien d’activités de mentorat et de réseautage et la mise en place de mesures visant à mieux concilier vie familiale et vie professionnelle.
+Le FNS s’efforce par ailleurs d’identifier et de réduire les sources de biais dans ses procédures d’évaluation.
+À cette fin, il a pris la décision d’encourager une composition plus équitable dans ses panels d’évaluation et au Conseil national de la recherche, et introduit un quota de genres en début d’année.
+Cependant, les questions suivantes mériteraient entre autres d’être examinées : Quelle est l’importance de l’influence exercée par les variables confondantes précitées? Les requêtes des chercheuses sont-elles évaluées moins favorablement ? Certains critères d’évaluation pénalisent-ils les femmes? Et les mesures d’égalité des genres introduites tiennent-elles leurs promesses? D’autres récits de données donneront lieu à des analyses approfondies visant à répondre à ces questions.
+
+</div>
+
+
+Données, texte et code de cette histoire de données sont <a href="https://github.com/snsf-data/datastory_women_underrepresented_or_underfunded" target="_blank">disponibles sur Github</a> et <a href="https://doi.org/10.46446/datastory.women-underrepresented-or-underfunded" target="_blank">archivés sur Zenodo</a>.<br>DOI: 10.46446/datastory.women-underrepresented-or-underfunded
