@@ -140,9 +140,9 @@ p <- pf_summary %>%
              group = gender)) +
   geom_line(color = get_datastory_scheme("qualitative")[1], size = .4) + 
   geom_point_interactive(
-    aes(tooltip = paste0("Share of ", tolower(gender),
-                         " researchers: <b>", round(prop_applicants, 3) * 100,
-                         "%</b> of <b>", N, "</b> total submissions")),
+    aes(tooltip = paste0("Anteil ", tolower(gender), "er",
+                         " Forschenden: <b>", round(prop_applicants, 3) * 100,
+                         "%</b> von <b>", N, "</b> Gesuchen")),
     size = 10, color = "white", alpha = .01) +
   scale_y_continuous(labels = scales::label_percent(accuracy = 1),
                      limits = c(0, 0.55),
@@ -205,9 +205,9 @@ gg <- pf_summary_main_researcharea %>%
          # reorder the factor levels
          name = suppressWarnings(fct_relevel(name, c("LW", "MINT", "GSW"))),
          label = ifelse(end_date_call == "2020-10-01", paste0(name), NA)) %>%
-  filter(gender == "Weiblich") %>%
   group_by(end_date_call, name) %>% 
   mutate(N = sum(n)) %>% 
+  filter(gender == "Weiblich") %>%
   ungroup() %>% 
   arrange(end_date_call) %>% 
   ggplot(aes(x = end_date_call, y = prop_applicants, 
@@ -216,11 +216,11 @@ gg <- pf_summary_main_researcharea %>%
             # Draw point instead of square symbol
             key_glyph = draw_key_point) + 
   geom_point_interactive(aes(tooltip =
-                               paste0("<b>", name, "</b>: Share of ", 
-                                      tolower(gender),
-                                      " researchers: <b>" , 
+                               paste0("<b>", name, "</b>: Anteil ", 
+                                      tolower(gender), "er", 
+                                      " Forschenden: <b>" , 
                                       round(prop_applicants, 3) * 100,
-                                      "%</b> of <b>", N, "</b> submissions")),
+                                      "%</b> von <b>", N, "</b> Gesuchen")),
                          size = 10, color = "white", alpha = .01) +
   scale_y_continuous(labels = scales::label_percent(accuracy = 1),
                      limits = c(0, 0.55),
@@ -320,8 +320,8 @@ plot_sr_by_main_researcharea <- function(main_research_area) {
   ggplot(aes(x = end_date_call, y = SR, color = gender, group = gender)) +
   geom_line(key_glyph = draw_key_point, size = .6) + 
   geom_point_interactive(aes(tooltip =
-                               paste0("Success rate of ", gender ,
-                                      " applicants: ", 
+                               paste0("Erfolgsquote ", tolower(gender), "er",
+                                      " Gesuchstellenden: ", 
                                       round(SR, 3) * 100, "%")),
                          size = 4, color = "white", alpha = .01) +
   scale_y_continuous(labels = scales::label_percent(accuracy = 1),
@@ -431,8 +431,9 @@ plot_fr_by_main_researcharea <- function(main_research_area) {
              group = gender)) +
   geom_line(key_glyph = draw_key_point, size = .6) + 
   geom_point_interactive(aes(tooltip =
-                               paste0("Funding rate of ", gender ,
-                                      " applicants: ", round(FR, 3) * 100, "%")),
+                               paste0("Förderquote ", tolower(gender), "er",
+                                      " Gesuchstellenden: ",
+                                      round(FR, 3) * 100, "%")),
                          size = 4, color = "white", alpha = .01) +
   scale_y_continuous(labels = scales::label_percent(accuracy = 1),
                      limits = c(.2, .65),

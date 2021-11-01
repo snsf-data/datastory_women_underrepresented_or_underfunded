@@ -205,9 +205,9 @@ gg <- pf_summary_main_researcharea %>%
          # reorder the factor levels
          name = suppressWarnings(fct_relevel(name, c("LS", "MINT", "SSH"))),
          label = ifelse(end_date_call == "2020-10-01", paste0(name), NA)) %>%
-  filter(gender == "Female") %>%
   group_by(end_date_call, name) %>% 
   mutate(N = sum(n)) %>% 
+  filter(gender == "Female") %>%
   ungroup() %>% 
   arrange(end_date_call) %>% 
   ggplot(aes(x = end_date_call, y = prop_applicants, 
