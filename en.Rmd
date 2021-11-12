@@ -179,7 +179,7 @@ girafe(ggobj = p,
 caption <- paste0("The evolution of the share of proposals to Project funding with female corresponding applicants since the October 2016 call.")
 ```
 <div class="caption">
-`r caption` Data on github: <a href="https://github.com/snsf-data/datastory_women_underrepresented_or_underfunded/data" target="_blank">Success- and fundingrates in Project Funding</a>.
+`r caption` Data on github: <a href="https://github.com/snsf-data/datastory_women_underrepresented_or_underfunded/tree/main/data" target="_blank">Success- and fundingrates in Project Funding</a>.
 </div>
 </div>
 
@@ -256,7 +256,7 @@ caption <- paste0("The share of proposals with female corresponding applicants "
                   "on the main research area of the proposal.")
 ```
 <div class="caption">
-`r caption` Data on github: <a href="https://github.com/snsf-data/datastory_women_underrepresented_or_underfunded/data" target="_blank">Success- and fundingrates in Project Funding</a>.
+`r caption` Data on github: <a href="https://github.com/snsf-data/datastory_women_underrepresented_or_underfunded/tree/main/data" target="_blank">Success- and fundingrates in Project Funding</a>.
 </div>
 </div>
 
@@ -370,7 +370,7 @@ caption <- paste0("The success rates depending on the gender of the correspondin
                   "October 2016 Project funding call.")
 ```
 <div class="caption">
-`r caption` Data on github: <a href="https://github.com/snsf-data/datastory_women_underrepresented_or_underfunded/data" target="_blank">Success- and Fundingrates in Project Funding</a>.
+`r caption` Data on github: <a href="https://github.com/snsf-data/datastory_women_underrepresented_or_underfunded/tree/main/data" target="_blank">Success- and Fundingrates in Project Funding</a>.
 </div>
 </div>
 
@@ -479,7 +479,7 @@ caption <- paste0("The funding rates depending on the gender of the correspondin
                   "October 2016 Project funding call.")
 ```
 <div class="caption">
-`r caption` Data on github: <a href="https://github.com/snsf-data/datastory_women_underrepresented_or_underfunded/data" target="_blank">Success- and Fundingrates in Project Funding</a>.
+`r caption` Data on github: <a href="https://github.com/snsf-data/datastory_women_underrepresented_or_underfunded/tree/main/data" target="_blank">Success- and Fundingrates in Project Funding</a>.
 </div>
 </div>
 

@@ -179,7 +179,7 @@ caption <- "Evolution de la part des demandes de financement dans
             correspondance depuis la mise au concours d'octobre 2016."
 ```
 <div class="caption">
-`r caption` Données sur github: <a href="https://github.com/snsf-data/datastory_women_underrepresented_or_underfunded/data" target="_blank">Taux de réussite et de financement dans l'encouragement des projets</a>.
+`r caption` Données sur github: <a href="https://github.com/snsf-data/datastory_women_underrepresented_or_underfunded/tree/main/data" target="_blank">Taux de réussite et de financement dans l'encouragement des projets</a>.
 </div>
 </div>
 
@@ -257,7 +257,7 @@ caption <- "Part des demandes de financement comprenant des requérantes chargé
             la requête."
 ```
 <div class="caption">
-`r caption` Données sur github: <a href="https://github.com/snsf-data/datastory_women_underrepresented_or_underfunded/data" target="_blank">Taux de réussite et de financement dans l'encouragement des projets</a>.
+`r caption` Données sur github: <a href="https://github.com/snsf-data/datastory_women_underrepresented_or_underfunded/tree/main/data" target="_blank">Taux de réussite et de financement dans l'encouragement des projets</a>.
 </div>
 </div>
 
@@ -371,7 +371,7 @@ caption <- "Taux de réussite en fonction du sexe de la ou du requérant·e char
             mise au concours d’octobre 2016 dans l’encouragement de projets."
 ```
 <div class="caption">
-`r caption` Données sur github: <a href="https://github.com/snsf-data/datastory_women_underrepresented_or_underfunded/data" target="_blank">Taux de réussite et de financement dans l'encouragement des projets</a>.
+`r caption` Données sur github: <a href="https://github.com/snsf-data/datastory_women_underrepresented_or_underfunded/tree/main/data" target="_blank">Taux de réussite et de financement dans l'encouragement des projets</a>.
 </div>
 </div>
 
@@ -482,7 +482,7 @@ caption <- "Taux de financement en fonction du sexe de la ou du requérant·e
             l’encouragement de projets."
 ```
 <div class="caption">
-`r caption` Données sur github: <a href="https://github.com/snsf-data/datastory_women_underrepresented_or_underfunded/data" target="_blank">Taux de réussite et de financement dans l'encouragement des projets</a>.
+`r caption` Données sur github: <a href="https://github.com/snsf-data/datastory_women_underrepresented_or_underfunded/tree/main/data" target="_blank">Taux de réussite et de financement dans l'encouragement des projets</a>.
 </div>
 </div>
 

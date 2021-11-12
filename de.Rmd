@@ -178,7 +178,7 @@ caption <- paste0("Die Entwicklung des Gesuchsanteil von verantwortlichen
                   Ausschreibung vom Oktober 2016")
 ```
 <div class="caption">
-`r caption` Daten auf github: <a href="https://github.com/snsf-data/datastory_women_underrepresented_or_underfunded/data" target="_blank">Erfolgs- und Förderquoten in der Projektförderung</a>.
+`r caption` Daten auf github: <a href="https://github.com/snsf-data/datastory_women_underrepresented_or_underfunded/tree/main/data" target="_blank">Erfolgs- und Förderquoten in der Projektförderung</a>.
 </div>
 </div>
 
@@ -256,7 +256,7 @@ caption <- paste0("Anteil der Gesuche von verantwortlichen Gesuchstellerinnen ",
                   " 2016 und nach Forschungsbereich.")
 ```
 <div class="caption">
-`r caption` Daten auf github: <a href="https://github.com/snsf-data/datastory_women_underrepresented_or_underfunded/data" target="_blank">Erfolgs- und Förderquoten in der Projektförderung</a>.
+`r caption` Daten auf github: <a href="https://github.com/snsf-data/datastory_women_underrepresented_or_underfunded/tree/main/data" target="_blank">Erfolgs- und Förderquoten in der Projektförderung</a>.
 </div>
 </div>
 
@@ -372,7 +372,7 @@ caption <- paste0("Die Erfolgsquoten abhängig vom Geschlecht des ",
                   "Ausschreibung vom Oktober 2016.")
 ```
 <div class="caption">
-`r caption` Daten auf github: <a href="https://github.com/snsf-data/datastory_women_underrepresented_or_underfunded/data" target="_blank">Erfolgs- und Förderquoten in der Projektförderung</a>.
+`r caption` Daten auf github: <a href="https://github.com/snsf-data/datastory_women_underrepresented_or_underfunded/tree/main/data" target="_blank">Erfolgs- und Förderquoten in der Projektförderung</a>.
 </div>
 </div>
 
@@ -483,7 +483,7 @@ caption <- paste0("Die Förderquoten nach Geschlecht des verantwortlichen ",
                   "2016.")
 ```
 <div class="caption">
-`r caption` Daten auf github: <a href="https://github.com/snsf-data/datastory_women_underrepresented_or_underfunded/data" target="_blank">Erfolgs- und Förderquoten in der Projektförderung</a>.
+`r caption` Daten auf github: <a href="https://github.com/snsf-data/datastory_women_underrepresented_or_underfunded/tree/main/data" target="_blank">Erfolgs- und Förderquoten in der Projektförderung</a>.
 </div>
 </div>
 
